@@ -64,4 +64,4 @@ The character cards under `demo/` are created by community authors and are used 
 
 ---
 
-相关文档 · Related docs:`docs/`(需求方案、维护文档)、`使用说明.md`(使用指南)。
+相关文档 · Related docs:`USER_GUIDE.md`(使用指南 / user guide)、`docs/SPEC.md`(需求方案 / spec)、`docs/MAINTENANCE.md`(维护文档 / maintenance guide)。
