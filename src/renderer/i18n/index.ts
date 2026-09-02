@@ -165,7 +165,7 @@ const zh: Dict = {
   'settings.model': '模型名',
   'settings.save': '保存',
   'settings.cancel': '取消',
-  'settings.keyHint': '密钥仅保存在本机应用数据目录,只发送给你填写的服务商',
+  'settings.keyHint': '密钥仅保存在本机应用数据目录,只发送给你填写的服务商;本地/自定义接口可留空',
   'settings.saved': '保存成功',
   'settings.saveFailed': '保存失败',
 
@@ -347,7 +347,7 @@ const en: Dict = {
   'settings.model': 'Model',
   'settings.save': 'Save',
   'settings.cancel': 'Cancel',
-  'settings.keyHint': 'Key is stored locally and only sent to the provider you enter',
+  'settings.keyHint': 'Key is stored locally and only sent to the provider you enter; leave blank for local endpoints',
   'settings.saved': 'Saved',
   'settings.saveFailed': 'Save failed',
 

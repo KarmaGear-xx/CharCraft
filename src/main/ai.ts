@@ -7,17 +7,22 @@ export async function chat(
   opts: { json?: boolean },
 ): Promise<string> {
   const { baseUrl, apiKey, model } = settings;
-  if (!baseUrl || !apiKey || !model) {
-    throw new Error('AI 设置不完整:请填写接口地址、API Key 和模型名。');
+  if (!baseUrl || !model) {
+    throw new Error('AI 设置不完整:请填写接口地址和模型名(API Key 可留空)。');
   }
 
   const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
   const body: Record<string, unknown> = { model, messages, temperature: 0.8 };
   if (opts.json) body.response_format = { type: 'json_object' };
 
+  // Local OpenAI-compatible servers (Ollama/LM Studio/etc.) do not require a
+  // key, so omit the Authorization header when the key is blank.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers.Authorization = 'Bearer ' + apiKey;
+
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+    headers,
     body: JSON.stringify(body),
   });
 
@@ -36,9 +41,11 @@ export async function chat(
 // (OpenRouter / DeepSeek / OpenAI all return { data: [{ id, ... }] }).
 export async function listModels(settings: AISettings): Promise<string[]> {
   const { baseUrl, apiKey } = settings;
-  if (!baseUrl || !apiKey) throw new Error('AI 设置不完整:请填写接口地址和 API Key。');
+  if (!baseUrl) throw new Error('AI 设置不完整:请填写接口地址(API Key 可留空)。');
   const url = baseUrl.replace(/\/+$/, '') + '/models';
-  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + apiKey } });
+  const headers: Record<string, string> = {};
+  if (apiKey) headers.Authorization = 'Bearer ' + apiKey;
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error('获取模型列表失败 (' + res.status + '): ' + text.slice(0, 200));

@@ -41,6 +41,8 @@ Fill in three things under **AI Settings**: base URL, API key, model name. Prese
 
 - The API key is stored **only in the local app-data directory** and is sent only to the provider you configure.
   API Key 只存本机应用数据目录,只发给你填写的服务商。
+- The API key may be **left blank** for local OpenAI-compatible servers (Ollama / LM Studio / llama.cpp / vLLM …); set the base URL to e.g. `http://localhost:11434/v1`.
+  API Key **可留空**,用于本地 OpenAI 兼容服务(Ollama / LM Studio / llama.cpp / vLLM…);接口地址填如 `http://localhost:11434/v1`。
 - App-data directory: `%APPDATA%\CharCraft\` (contains `config.json` and `draft.json`).
   应用数据目录:`%APPDATA%\CharCraft\`(含 `config.json` 与 `draft.json`)。
 
