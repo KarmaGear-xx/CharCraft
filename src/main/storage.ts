@@ -10,6 +10,7 @@ const DEFAULT_CONFIG: AppConfig = {
     baseUrl: 'https://openrouter.ai/api/v1',
     apiKey: '',
     model: 'openai/gpt-4o-mini',
+    responseFormat: 'json_object',
   },
   snippets: [],
   customRecipes: [],

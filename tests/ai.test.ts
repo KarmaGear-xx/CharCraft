@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { chat, listModels } from '../src/main/ai';
 
-function settings(overrides: Partial<{ baseUrl: string; apiKey: string; model: string }> = {}) {
+function settings(
+  overrides: Partial<{ baseUrl: string; apiKey: string; model: string; responseFormat: 'json_object' | 'off' }> = {},
+) {
   return {
     baseUrl: 'http://localhost:11434/v1',
     apiKey: '',
     model: 'qwen2.5:14b',
+    responseFormat: 'json_object' as const,
     ...overrides,
   };
 }
@@ -45,6 +48,32 @@ describe('AI client (main process)', () => {
   it('requires baseUrl and model but not apiKey', async () => {
     await expect(chat(settings({ model: '' }), [], {})).rejects.toThrow(/模型名/);
     await expect(chat(settings({ baseUrl: '' }), [], {})).rejects.toThrow(/接口地址/);
+  });
+
+  it('sends response_format json_object when JSON mode is on', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{}' } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await chat(settings(), [{ role: 'user', content: 'x' }], { json: true });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toMatchObject({ response_format: { type: 'json_object' } });
+  });
+
+  it('omits response_format when JSON mode is off (local models)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{}' } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await chat(settings({ responseFormat: 'off' }), [{ role: 'user', content: 'x' }], { json: true });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body).response_format).toBeUndefined();
   });
 
   it('listModels omits the Authorization header when apiKey is empty', async () => {

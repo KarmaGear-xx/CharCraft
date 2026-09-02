@@ -61,6 +61,9 @@ export interface AISettings {
   baseUrl: string;
   apiKey: string;
   model: string;
+  // 'json_object' sends OpenAI's response_format json_object (online providers);
+  // 'off' omits response_format and relies on the prompt (local models e.g. LM Studio).
+  responseFormat: 'json_object' | 'off';
 }
 
 export interface AIMessage {

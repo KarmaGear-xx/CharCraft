@@ -13,7 +13,13 @@ export async function chat(
 
   const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
   const body: Record<string, unknown> = { model, messages, temperature: 0.8 };
-  if (opts.json) body.response_format = { type: 'json_object' };
+  // Some local servers (e.g. LM Studio with certain models) reject
+  // `response_format: {type:'json_object'}` and require `json_schema` instead;
+  // letting the user turn it off keeps those endpoints usable (the prompt already
+  // instructs JSON output and the renderer parses it tolerantly).
+  if (opts.json && settings.responseFormat !== 'off') {
+    body.response_format = { type: 'json_object' };
+  }
 
   // Local OpenAI-compatible servers (Ollama/LM Studio/etc.) do not require a
   // key, so omit the Authorization header when the key is blank.

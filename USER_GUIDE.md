@@ -43,6 +43,8 @@ Fill in three things under **AI Settings**: base URL, API key, model name. Prese
   API Key 只存本机应用数据目录,只发给你填写的服务商。
 - The API key may be **left blank** for local OpenAI-compatible servers (Ollama / LM Studio / llama.cpp / vLLM …); set the base URL to e.g. `http://localhost:11434/v1`.
   API Key **可留空**,用于本地 OpenAI 兼容服务(Ollama / LM Studio / llama.cpp / vLLM…);接口地址填如 `http://localhost:11434/v1`。
+- **JSON Mode** (`json_object` by default): for local models that reject `json_object` (e.g. LM Studio with some models), set it to **Off** so no `response_format` is sent.
+  **JSON 模式**(默认 `json_object`):若本地模型报 `'response_format.type' must be 'json_schema'`(如 LM Studio 部分模型),把该项设为「关闭」即可。
 - App-data directory: `%APPDATA%\CharCraft\` (contains `config.json` and `draft.json`).
   应用数据目录:`%APPDATA%\CharCraft\`(含 `config.json` 与 `draft.json`)。
 

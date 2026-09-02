@@ -104,7 +104,7 @@ src/
   shared/
     types.ts     # data models + WindowApi
     ipc.ts       # IPC channel names
-tests/            # vitest (12 files, 42 cases)
+tests/            # vitest (12 files, 44 cases)
 ```
 
 ## 6. Data models & file formats / 数据模型与文件格式
@@ -133,7 +133,7 @@ Others: avatar、character_book、extensions、group_only_greetings
 
 | File 文件 | Contents 内容 |
 |---|---|
-| `config.json` | lang / theme / aiSettings / snippets / customRecipes / tokenBudget |
+| `config.json` | lang / theme / aiSettings (baseUrl / apiKey / model / responseFormat) / snippets / customRecipes / tokenBudget |
 | `draft.json` | card / enabled / image (avatar rgba stored as base64) / subFields / snapshots / sourceName |
 
 ## 7. Feature list (by milestone) / 功能清单(按里程碑)
@@ -151,7 +151,7 @@ Others: avatar、character_book、extensions、group_only_greetings
 ## 8. Key implementation details / 关键实现细节
 
 - **PNG codec**: hand-written chunk parsing + browser-native `CompressionStream`/`DecompressionStream` (zlib), zero native deps. 手写 chunk 解析 + 浏览器原生 zlib,零原生依赖。
-- **AI call**: main-process `fetch` directly to an OpenAI-compatible endpoint (`baseUrl + '/chat/completions'`); renderer calls via `aiChat` IPC to avoid CORS. Presets: OpenRouter / DeepSeek / custom. **API key may be left blank** for local OpenAI-compatible servers (Ollama / LM Studio / llama.cpp / vLLM) — the `Authorization` header is omitted when the key is empty.
+- **AI call**: main-process `fetch` directly to an OpenAI-compatible endpoint (`baseUrl + '/chat/completions'`); renderer calls via `aiChat` IPC to avoid CORS. Presets: OpenRouter / DeepSeek / custom. **API key may be left blank** for local OpenAI-compatible servers (Ollama / LM Studio / llama.cpp / vLLM) — the `Authorization` header is omitted when the key is empty. **`responseFormat`** setting: `json_object` (default) sends `response_format:{type:'json_object'}` for JSON requests; `off` omits it for local servers (e.g. LM Studio with models that require `json_schema`).
 - **Cost reminder**: dialog on the first AI generation per launch (in-memory flag, reset on restart). 每次启动后首次生成弹窗(内存标志,重启重置)。
 - **Overwrite protection**: before whole-card generation, if content exists, show 4 options (cancel / clear-overwrite / fill-empty-only / choose targets).
 - **Sub-field merge**: `mergeDescription()` prepends non-empty sub-fields to `description` on **export** as `English label: value` lines (labels in English, per the English-content constraint).
@@ -166,7 +166,7 @@ Others: avatar、character_book、extensions、group_only_greetings
 ```bash
 pnpm install            # dependencies 依赖
 pnpm typecheck          # tsc --noEmit -p tsconfig.json
-pnpm test               # vitest run (12 files, 42 cases)
+pnpm test               # vitest run (12 files, 44 cases)
 pnpm build              # tsc -p tsconfig.main.json && vite build → out/
 pnpm package            # build && electron-builder --win portable → release/
 ```

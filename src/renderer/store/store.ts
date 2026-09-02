@@ -41,6 +41,7 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   baseUrl: 'https://openrouter.ai/api/v1',
   apiKey: '',
   model: 'openai/gpt-4o-mini',
+  responseFormat: 'json_object',
 };
 
 export const DEFAULT_TOKEN_BUDGET = 4096;
