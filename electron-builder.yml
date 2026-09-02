@@ -1,0 +1,16 @@
+appId: com.charcraft.app
+productName: CharCraft
+directories:
+  output: release
+files:
+  - out/**
+  - "!**/*.map"
+asar: true
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+electronDownload:
+  cache: .electron-cache
+  mirror: https://npmmirror.com/mirrors/electron/

@@ -1,0 +1,13 @@
+node_modules
+out
+release
+dist
+.pnpm-store
+.pnpm-cache
+.pnpm-state
+.electron-cache
+.electron-builder-cache
+.npmrc
+ttf
+*.log
+.DS_Store
