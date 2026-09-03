@@ -6,13 +6,11 @@ import Modal from './Modal';
 export default function ModelSettingsModal({ onClose }: { onClose: () => void }) {
   const t = useT();
   const aiSettings = useCardStore((s) => s.aiSettings);
-  const setAISettings = useCardStore((s) => s.setAISettings);
+  const saveSettings = useCardStore((s) => s.saveSettings);
   const setSuccess = useCardStore((s) => s.setSuccess);
   const setError = useCardStore((s) => s.setError);
   const tokenBudget = useCardStore((s) => s.tokenBudget);
-  const setTokenBudget = useCardStore((s) => s.setTokenBudget);
   const promptTemplates = useCardStore((s) => s.promptTemplates);
-  const setPromptTemplates = useCardStore((s) => s.setPromptTemplates);
 
   const [baseUrl, setBaseUrl] = useState(aiSettings.baseUrl);
   const [apiKey, setApiKey] = useState(aiSettings.apiKey);
@@ -66,16 +64,18 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
 
   const save = async () => {
     try {
-      await setAISettings({
-        baseUrl: baseUrl.trim(),
-        apiKey: apiKey.trim(),
-        model: model.trim(),
-        responseFormat,
-        maxTokensWhole: Number(maxTokensWhole) || 4096,
-        maxTokensField: Number(maxTokensField) || 2048,
-      });
-      setTokenBudget(Number(budget) || 4096);
-      setPromptTemplates({ system: ptSystem, wholeCard: ptWholeCard, fieldRewrite: ptField, lorebook: ptLorebook, recipe: ptRecipe });
+      await saveSettings(
+        {
+          baseUrl: baseUrl.trim(),
+          apiKey: apiKey.trim(),
+          model: model.trim(),
+          responseFormat,
+          maxTokensWhole: Number(maxTokensWhole) || 4096,
+          maxTokensField: Number(maxTokensField) || 2048,
+        },
+        Number(budget) || 4096,
+        { system: ptSystem, wholeCard: ptWholeCard, fieldRewrite: ptField, lorebook: ptLorebook, recipe: ptRecipe },
+      );
       setSuccess(t('settings.saved'));
       onClose();
     } catch (e) {

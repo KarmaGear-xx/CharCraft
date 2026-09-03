@@ -104,6 +104,7 @@ interface CardState {
 
   setLang: (l: Lang) => void;
   setAISettings: (s: AISettings) => Promise<void>;
+  saveSettings: (ai: AISettings, tokenBudget: number, promptTemplates: PromptTemplates) => Promise<void>;
   setBrief: (b: string) => void;
   setSubField: (key: string, value: string) => void;
   setError: (e: string | null) => void;
@@ -196,6 +197,10 @@ export const useCardStore = create<CardState>()((set, get) => ({
   },
   setAISettings: async (s) => {
     set({ aiSettings: s });
+    await window.api.setConfig(currentConfig(get()));
+  },
+  saveSettings: async (ai, tokenBudget, promptTemplates) => {
+    set({ aiSettings: ai, tokenBudget, promptTemplates });
     await window.api.setConfig(currentConfig(get()));
   },
   setBrief: (b) => set({ brief: b }),
@@ -598,8 +603,9 @@ export const useCardStore = create<CardState>()((set, get) => ({
   requestExport: async (kind) => {
     const state = get();
     if (!state.card) throw new Error('没有卡片可导出。');
-    const composed = state.characters.length > 0 ? composeMultiCard(state.card, state.characters, state.group) : state.card;
-    const issues = validateCard(composed, state.enabled, state.tokenBudget, state.image);
+    const multi = state.characters.length > 0;
+    const composed = multi ? composeMultiCard(state.card, state.characters, state.group) : state.card;
+    const issues = validateCard(composed, effectiveEnabled(state.enabled, multi), state.tokenBudget, state.image);
     if (issues.length === 0) {
       await doExport(kind);
     } else {
@@ -671,6 +677,16 @@ function reorderEntries(entries: WorldEntry[]): WorldEntry[] {
   return entries.map((e, i) => ({ ...e, insertion_order: i }));
 }
 
+// In multi-character mode the composed fields are the point of the export, so
+// they must never be trimmed away by a disabled field checkbox.
+const MULTI_EXPORT_KEYS = ['name', 'description', 'personality', 'scenario', 'first_mes', 'tags'];
+function effectiveEnabled(enabled: Record<string, boolean>, multi: boolean): Record<string, boolean> {
+  if (!multi) return enabled;
+  const e = { ...enabled };
+  for (const k of MULTI_EXPORT_KEYS) e[k] = true;
+  return e;
+}
+
 function withMergedDescription(card: CharacterCard, subFields: Record<string, string>): CharacterCard {
   const data = { ...(card.data ?? {}) };
   data.description = mergeDescription(String(data.description ?? ''), subFields);
@@ -680,17 +696,19 @@ function withMergedDescription(card: CharacterCard, subFields: Record<string, st
 async function doExport(kind: 'json' | 'png'): Promise<void> {
   const state = useCardStore.getState();
   if (!state.card) throw new Error('没有卡片可导出。');
-  const composed = state.characters.length > 0 ? composeMultiCard(state.card, state.characters, state.group) : state.card;
+  const multi = state.characters.length > 0;
+  const composed = multi ? composeMultiCard(state.card, state.characters, state.group) : state.card;
   const merged = withMergedDescription(composed, state.subFields);
+  const enabledEff = effectiveEnabled(state.enabled, multi);
   if (kind === 'json') {
-    const text = buildJsonText(merged, state.enabled);
+    const text = buildJsonText(merged, enabledEff);
     await window.api.saveFile(
       (state.sourceName || 'card') + '.json',
       [{ name: 'JSON', extensions: ['json'] }],
       new TextEncoder().encode(text),
     );
   } else {
-    const bytes = await buildPngBytes(merged, state.enabled, state.image);
+    const bytes = await buildPngBytes(merged, enabledEff, state.image);
     await window.api.saveFile((state.sourceName || 'card') + '.png', [{ name: 'PNG Image', extensions: ['png'] }], bytes);
   }
 }
@@ -710,7 +728,7 @@ function scheduleSave(s: CardState): void {
     s: s.subFields,
     p: s.snapshots.length,
     i: s.image ? s.image.width + ':' + s.image.height : null,
-    m: s.characters.length,
+    m: s.characters,
     g: s.group,
   });
   if (snapshot === lastSnapshot) return;
