@@ -4,7 +4,7 @@ import type { AISettings, AIMessage } from '../shared/types';
 export async function chat(
   settings: AISettings,
   messages: AIMessage[],
-  opts: { json?: boolean },
+  opts: { json?: boolean; maxTokens?: number },
 ): Promise<string> {
   const { baseUrl, apiKey, model } = settings;
   if (!baseUrl || !model) {
@@ -13,6 +13,7 @@ export async function chat(
 
   const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
   const body: Record<string, unknown> = { model, messages, temperature: 0.8 };
+  if (opts.maxTokens && opts.maxTokens > 0) body.max_tokens = opts.maxTokens;
   // Some local servers (e.g. LM Studio with certain models) reject
   // `response_format: {type:'json_object'}` and require `json_schema` instead;
   // letting the user turn it off keeps those endpoints usable (the prompt already

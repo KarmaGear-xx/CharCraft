@@ -42,6 +42,8 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   apiKey: '',
   model: 'openai/gpt-4o-mini',
   responseFormat: 'json_object',
+  maxTokensWhole: 4096,
+  maxTokensField: 2048,
 };
 
 export const DEFAULT_TOKEN_BUDGET = 4096;
@@ -274,7 +276,10 @@ export const useCardStore = create<CardState>()((set, get) => ({
   generateWholeCard: async (brief, mode, targets) => {
     const state = get();
     if (!state.card) throw new Error('没有卡片可编辑。');
-    const content = await window.api.aiChat(state.aiSettings, wholeCardMessages(brief), { json: true });
+    const content = await window.api.aiChat(state.aiSettings, wholeCardMessages(brief), {
+      json: true,
+      maxTokens: state.aiSettings.maxTokensWhole,
+    });
     const obj = extractJson(content) as Record<string, unknown>;
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('AI 未返回有效对象。');
     const data: CardData = { ...(state.card.data ?? {}) };
@@ -307,7 +312,7 @@ export const useCardStore = create<CardState>()((set, get) => ({
     const content = await window.api.aiChat(
       state.aiSettings,
       fieldRewriteMessages(key, current, { name: state.card.data?.name, brief: state.brief }),
-      { json: isArray },
+      { json: isArray, maxTokens: state.aiSettings.maxTokensField },
     );
     const value = isArray ? coerceGeneratedField(key, extractJson(content)) : content.trim();
     get().updateField(key, value);
@@ -318,7 +323,10 @@ export const useCardStore = create<CardState>()((set, get) => ({
     if (!state.card) throw new Error('没有卡片可编辑。');
     const name = state.card.data?.name ?? '';
     const desc = state.card.data?.description ?? '';
-    const content = await window.api.aiChat(state.aiSettings, lorebookEntryMessages(name, desc, topic), { json: true });
+    const content = await window.api.aiChat(state.aiSettings, lorebookEntryMessages(name, desc, topic), {
+      json: true,
+      maxTokens: state.aiSettings.maxTokensField,
+    });
     const obj = extractJson(content) as Record<string, unknown>;
     const entry: WorldEntry = {
       keys: coerceGeneratedField('tags', obj.keys) as string[],
@@ -337,7 +345,7 @@ export const useCardStore = create<CardState>()((set, get) => ({
     const content = await window.api.aiChat(
       state.aiSettings,
       recipeMessages(recipe, current, state.card.data?.name ?? ''),
-      { json: false },
+      { json: false, maxTokens: state.aiSettings.maxTokensField },
     );
     const generated = content.trim();
     get().updateField(recipe.field, current ? current + '\n' + generated : generated);

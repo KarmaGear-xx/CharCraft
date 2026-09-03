@@ -43,8 +43,10 @@ function registerIpc(): void {
       saveFile(BrowserWindow.fromWebContents(event.sender), defaultName, filters, bytes),
   );
 
-  ipcMain.handle(IPC.aiChat, (_e, settings: AISettings, messages: AIMessage[], opts: { json?: boolean }) =>
-    chat(settings, messages, opts),
+  ipcMain.handle(
+    IPC.aiChat,
+    (_e, settings: AISettings, messages: AIMessage[], opts: { json?: boolean; maxTokens?: number }) =>
+      chat(settings, messages, opts),
   );
 
   ipcMain.handle(IPC.listModels, (_e, settings: AISettings) => listModels(settings));

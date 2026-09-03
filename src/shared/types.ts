@@ -64,6 +64,9 @@ export interface AISettings {
   // 'json_object' sends OpenAI's response_format json_object (online providers);
   // 'off' omits response_format and relies on the prompt (local models e.g. LM Studio).
   responseFormat: 'json_object' | 'off';
+  // Max output tokens (sent as max_tokens) per operation tier.
+  maxTokensWhole: number; // whole-card ("one-line brief") generation
+  maxTokensField: number; // single-field / lorebook / recipe generation
 }
 
 export interface AIMessage {
@@ -136,7 +139,7 @@ export interface WindowApi {
   openCard: () => Promise<OpenCardResult | null>;
   openFile: (filters: SaveFilter[]) => Promise<OpenCardResult | null>;
   saveFile: (defaultName: string, filters: SaveFilter[], bytes: Uint8Array) => Promise<string | null>;
-  aiChat: (settings: AISettings, messages: AIMessage[], opts: { json?: boolean }) => Promise<string>;
+  aiChat: (settings: AISettings, messages: AIMessage[], opts: { json?: boolean; maxTokens?: number }) => Promise<string>;
   listModels: (settings: AISettings) => Promise<string[]>;
   getConfig: () => Promise<AppConfig>;
   setConfig: (config: AppConfig) => Promise<void>;

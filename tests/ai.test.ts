@@ -2,13 +2,22 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { chat, listModels } from '../src/main/ai';
 
 function settings(
-  overrides: Partial<{ baseUrl: string; apiKey: string; model: string; responseFormat: 'json_object' | 'off' }> = {},
+  overrides: Partial<{
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    responseFormat: 'json_object' | 'off';
+    maxTokensWhole: number;
+    maxTokensField: number;
+  }> = {},
 ) {
   return {
     baseUrl: 'http://localhost:11434/v1',
     apiKey: '',
     model: 'qwen2.5:14b',
     responseFormat: 'json_object' as const,
+    maxTokensWhole: 4096,
+    maxTokensField: 2048,
     ...overrides,
   };
 }
@@ -74,6 +83,20 @@ describe('AI client (main process)', () => {
 
     const [, init] = fetchMock.mock.calls[0];
     expect(JSON.parse(init.body).response_format).toBeUndefined();
+  });
+
+  it('sends max_tokens when provided, and omits it when not', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'hi' } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await chat(settings(), [{ role: 'user', content: 'x' }], { maxTokens: 4096 });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).max_tokens).toBe(4096);
+
+    await chat(settings(), [{ role: 'user', content: 'x' }], {});
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).max_tokens).toBeUndefined();
   });
 
   it('listModels omits the Authorization header when apiKey is empty', async () => {

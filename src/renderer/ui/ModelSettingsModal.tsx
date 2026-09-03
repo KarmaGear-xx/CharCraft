@@ -16,6 +16,8 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
   const [apiKey, setApiKey] = useState(aiSettings.apiKey);
   const [model, setModel] = useState(aiSettings.model);
   const [responseFormat, setResponseFormat] = useState(aiSettings.responseFormat ?? 'json_object');
+  const [maxTokensWhole, setMaxTokensWhole] = useState(aiSettings.maxTokensWhole ?? 4096);
+  const [maxTokensField, setMaxTokensField] = useState(aiSettings.maxTokensField ?? 2048);
   const [budget, setBudget] = useState(tokenBudget);
   const [fetchModels, setFetchModels] = useState(false);
   const [models, setModels] = useState<string[]>([]);
@@ -42,6 +44,8 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
         apiKey: apiKey.trim(),
         model: model.trim(),
         responseFormat,
+        maxTokensWhole,
+        maxTokensField,
       });
       setModels(list);
       setSuccess(t('settings.modelsFetched'));
@@ -54,7 +58,14 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
 
   const save = async () => {
     try {
-      await setAISettings({ baseUrl: baseUrl.trim(), apiKey: apiKey.trim(), model: model.trim(), responseFormat });
+      await setAISettings({
+        baseUrl: baseUrl.trim(),
+        apiKey: apiKey.trim(),
+        model: model.trim(),
+        responseFormat,
+        maxTokensWhole: Number(maxTokensWhole) || 4096,
+        maxTokensField: Number(maxTokensField) || 2048,
+      });
       setTokenBudget(Number(budget) || 4096);
       setSuccess(t('settings.saved'));
       onClose();
@@ -136,6 +147,14 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
 
         <label>{t('settings.tokenBudget')}</label>
         <input type="number" value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
+
+        <label>{t('settings.maxTokensWhole')}</label>
+        <input type="number" value={maxTokensWhole} onChange={(e) => setMaxTokensWhole(Number(e.target.value))} />
+
+        <label>{t('settings.maxTokensField')}</label>
+        <input type="number" value={maxTokensField} onChange={(e) => setMaxTokensField(Number(e.target.value))} />
+
+        <p className="hint">{t('settings.tokenTierHint')}</p>
 
         <p className="hint">{t('settings.keyHint')}</p>
 

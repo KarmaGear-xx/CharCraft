@@ -45,6 +45,10 @@ Fill in three things under **AI Settings**: base URL, API key, model name. Prese
   API Key **可留空**,用于本地 OpenAI 兼容服务(Ollama / LM Studio / llama.cpp / vLLM…);接口地址填如 `http://localhost:11434/v1`。
 - **JSON Mode** (`json_object` by default): for local models that reject `json_object` (e.g. LM Studio with some models), set it to **Off** so no `response_format` is sent.
   **JSON 模式**(默认 `json_object`):若本地模型报 `'response_format.type' must be 'json_schema'`(如 LM Studio 部分模型),把该项设为「关闭」即可。
+- **Two max-output tiers**: `Whole-card Max Tokens` (default 4096) applies to "one-line brief → full card"; `Field Max Tokens` (default 2048) applies to single-field rewrite / lorebook / recipe. Both are manually configurable.
+  **两档最大输出 Token**:「整卡生成最大 Token」(默认 4096)用于「一句话设定 → 整卡」;「字段生成最大 Token」(默认 2048)用于单字段改写 / 世界书 / 配方,均可手动调整。
+- AI generation is **fidelity-first**: it preserves your input, then rewrites/expands/polishes on top of it.
+  AI 生成以**内容保真优先**:先保留你输入的信息,再在其基础上改写/扩写/润色。
 - App-data directory: `%APPDATA%\CharCraft\` (contains `config.json` and `draft.json`).
   应用数据目录:`%APPDATA%\CharCraft\`(含 `config.json` 与 `draft.json`)。
 

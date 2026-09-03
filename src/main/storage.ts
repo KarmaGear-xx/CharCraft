@@ -11,6 +11,8 @@ const DEFAULT_CONFIG: AppConfig = {
     apiKey: '',
     model: 'openai/gpt-4o-mini',
     responseFormat: 'json_object',
+    maxTokensWhole: 4096,
+    maxTokensField: 2048,
   },
   snippets: [],
   customRecipes: [],
