@@ -3,6 +3,7 @@ import type { FieldMeta } from '../core/fields';
 import { tokenCount } from '../core/token';
 import { useT } from '../i18n';
 import FullscreenEditor from './FullscreenEditor';
+import ArrayTextInput from './ArrayTextInput';
 
 interface Props {
   field: FieldMeta;
@@ -27,23 +28,9 @@ export default function FieldEditor({ field, value, enabled, locked, generating,
   } else if (field.kind === 'textarea') {
     input = <textarea rows={4} value={String(value ?? '')} disabled={!enabled} onChange={(e) => onChange(e.target.value)} />;
   } else if (field.kind === 'tags') {
-    input = (
-      <input
-        type="text"
-        value={arr.join(', ')}
-        disabled={!enabled}
-        onChange={(e) => onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-      />
-    );
+    input = <ArrayTextInput values={arr} delimiter="," disabled={!enabled} onChange={onChange} />;
   } else {
-    input = (
-      <textarea
-        rows={3}
-        value={arr.join('\n')}
-        disabled={!enabled}
-        onChange={(e) => onChange(e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))}
-      />
-    );
+    input = <ArrayTextInput values={arr} delimiter={'\n'} multiline disabled={!enabled} onChange={onChange} />;
   }
 
   return (

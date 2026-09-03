@@ -244,6 +244,8 @@ const zh: Dict = {
   'multi.generateGroup': 'AI 生成整组',
   'multi.empty': '尚未添加角色。点「添加角色」或「AI 生成角色」。',
   'multi.composeHint': '导出时会把角色列表合并进 description / personality(每角色一个带标题块),name 取组名。',
+  'multi.activeHint': '多角色模式:已添加 {n} 个角色,导出时以组合结果覆盖 name / description / personality / first_mes。',
+  'multi.previewToggle': '预览组合结果',
 
   'common.ok': '确定',
   'common.cancel': '取消',
@@ -487,6 +489,8 @@ const en: Dict = {
   'multi.generateGroup': 'AI Generate Group',
   'multi.empty': 'No characters yet. Click "Add Character" or "AI Generate Character".',
   'multi.composeHint': 'On export, characters merge into description / personality (one titled block each); name becomes the group name.',
+  'multi.activeHint': 'Multi-char mode: {n} characters added; export uses the composed name / description / personality / first_mes.',
+  'multi.previewToggle': 'Preview composition',
 
   'common.ok': 'OK',
   'common.cancel': 'Cancel',

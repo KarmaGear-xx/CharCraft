@@ -148,7 +148,7 @@ Others: avatar、character_book、extensions、group_only_greetings
 
 **M4 wrap-up 收尾**: gender swap / pronoun replace (case-aware, cross-field); multi-platform extension editing (depth_prompt/talkativeness/fav); dark mode; incremental save (snapshots/version history).
 
-**M5 usability & expansion 易用性与扩展**: local-model support (blank API key, JSON mode toggle, two-tier max tokens, fidelity-first prompts); editable prompt templates (default-hidden); world-book batch enable/disable/delete + search + reorder; pre-export health check (non-blocking); multi-character cards (manual compose + AI per-character/whole-group generation).
+**M5 usability & expansion 易用性与扩展**: local-model support (blank API key, JSON mode toggle, two-tier max tokens, fidelity-first prompts); editable prompt templates (default-hidden); world-book batch enable/disable/delete + search + reorder; pre-export health check (non-blocking); multi-character cards (manual compose + AI per-character/whole-group generation); array fields accept delimiters via draft-buffer + blur commit; multi-char composition preview in the card tab.
 
 ## 8. Key implementation details / 关键实现细节
 

@@ -3,6 +3,7 @@ import { useCardStore } from '../store/store';
 import { useT } from '../i18n';
 import { useRunGuarded } from './genContext';
 import FullscreenEditor from './FullscreenEditor';
+import ArrayTextInput from './ArrayTextInput';
 
 export default function LorebookEditor() {
   const t = useT();
@@ -194,8 +195,6 @@ export default function LorebookEditor() {
       {filtered.length === 0 && <p className="hint">{t('lorebook.empty')}</p>}
 
       {filtered.map(({ e: entry, i }) => {
-        const keys = (entry.keys ?? []).join(', ');
-        const secondary = (entry.secondary_keys ?? []).join(', ');
         return (
           <div className="entry" key={i}>
             <div className="entry-head">
@@ -218,11 +217,7 @@ export default function LorebookEditor() {
 
             <div className="entry-row">
               <label>{t('lorebook.keys')}</label>
-              <input
-                type="text"
-                value={keys}
-                onChange={(e) => updateLorebookEntry(i, { keys: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-              />
+              <ArrayTextInput values={entry.keys ?? []} delimiter="," onChange={(vals) => updateLorebookEntry(i, { keys: vals })} />
             </div>
             <div className="entry-row">
               <label>{t('lorebook.content')}</label>
@@ -255,11 +250,7 @@ export default function LorebookEditor() {
               <div style={{ marginTop: 6 }}>
                 <div className="entry-row">
                   <label>{t('lorebook.secondaryKeys')}</label>
-                  <input
-                    type="text"
-                    value={secondary}
-                    onChange={(e) => updateLorebookEntry(i, { secondary_keys: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                  />
+                  <ArrayTextInput values={entry.secondary_keys ?? []} delimiter="," onChange={(vals) => updateLorebookEntry(i, { secondary_keys: vals })} />
                 </div>
                 <div className="entry-row">
                   <label>{t('lorebook.position')}</label>

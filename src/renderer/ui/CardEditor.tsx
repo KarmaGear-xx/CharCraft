@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useCardStore, type OverwriteMode } from '../store/store';
 import { CORE_FIELDS, ADVANCED_FIELDS } from '../core/fields';
 import { WHOLE_CARD_FIELDS } from '../core/ai';
+import { composeMultiCard } from '../core/multiChar';
 import { useT } from '../i18n';
 import { useRunGuarded } from './genContext';
 import FieldEditor from './FieldEditor';
@@ -22,6 +23,8 @@ export default function CardEditor() {
   const generateWholeCard = useCardStore((s) => s.generateWholeCard);
   const generateField = useCardStore((s) => s.generateField);
   const setError = useCardStore((s) => s.setError);
+  const characters = useCardStore((s) => s.characters);
+  const group = useCardStore((s) => s.group);
 
   const [generating, setGenerating] = useState(false);
   const [generatingField, setGeneratingField] = useState<string | null>(null);
@@ -29,6 +32,7 @@ export default function CardEditor() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
   const [briefFullscreen, setBriefFullscreen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const hasContent = useMemo(() => {
     if (!card) return false;
@@ -76,6 +80,7 @@ export default function CardEditor() {
   };
 
   const data = card.data ?? {};
+  const preview = characters.length > 0 ? composeMultiCard(card, characters, group) : null;
 
   return (
     <section className="panel">
@@ -85,6 +90,36 @@ export default function CardEditor() {
           {t('format.title')}
         </button>
       </div>
+
+      {preview && (
+        <div className="hint" style={{ margin: '4px 0 8px' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span>👥 {t('multi.activeHint').replace('{n}', String(characters.length))}</span>
+            <button className="btn" onClick={() => setPreviewOpen((o) => !o)}>
+              {t('multi.previewToggle')}
+            </button>
+          </div>
+          {previewOpen && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div>
+                <strong>name:</strong> {String(preview.data?.name ?? '')}
+              </div>
+              <div>
+                <strong>description:</strong>
+                <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{String(preview.data?.description ?? '')}</pre>
+              </div>
+              <div>
+                <strong>personality:</strong>
+                <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{String(preview.data?.personality ?? '')}</pre>
+              </div>
+              <div>
+                <strong>first_mes:</strong>
+                <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{String(preview.data?.first_mes ?? '')}</pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="brief-row">
         <input
