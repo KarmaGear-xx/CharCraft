@@ -104,7 +104,7 @@ src/
   shared/
     types.ts     # data models + WindowApi
     ipc.ts       # IPC channel names
-tests/            # vitest (12 files, 45 cases)
+tests/            # vitest (15 files, 56 cases)
 ```
 
 ## 6. Data models & file formats / 数据模型与文件格式
@@ -133,8 +133,8 @@ Others: avatar、character_book、extensions、group_only_greetings
 
 | File 文件 | Contents 内容 |
 |---|---|
-| `config.json` | lang / theme / aiSettings (baseUrl / apiKey / model / responseFormat / maxTokensWhole / maxTokensField) / snippets / customRecipes / tokenBudget |
-| `draft.json` | card / enabled / image (avatar rgba stored as base64) / subFields / snapshots / sourceName |
+| `config.json` | lang / theme / aiSettings (baseUrl / apiKey / model / responseFormat / maxTokensWhole / maxTokensField) / snippets / customRecipes / tokenBudget / promptTemplates |
+| `draft.json` | card / enabled / image (avatar rgba stored as base64) / subFields / snapshots / sourceName / characters / group |
 
 ## 7. Feature list (by milestone) / 功能清单(按里程碑)
 
@@ -147,6 +147,8 @@ Others: avatar、character_book、extensions、group_only_greetings
 **M3 efficiency 效率工具**: Recipes (12 builtin + custom, AI "bake"); Snippets (add/remove + insert into field); cross-field find & replace; token count & budget (per-field + total/budget, budget configurable).
 
 **M4 wrap-up 收尾**: gender swap / pronoun replace (case-aware, cross-field); multi-platform extension editing (depth_prompt/talkativeness/fav); dark mode; incremental save (snapshots/version history).
+
+**M5 usability & expansion 易用性与扩展**: local-model support (blank API key, JSON mode toggle, two-tier max tokens, fidelity-first prompts); editable prompt templates (default-hidden); world-book batch enable/disable/delete + search + reorder; pre-export health check (non-blocking); multi-character cards (manual compose + AI per-character/whole-group generation).
 
 ## 8. Key implementation details / 关键实现细节
 
@@ -166,7 +168,7 @@ Others: avatar、character_book、extensions、group_only_greetings
 ```bash
 pnpm install            # dependencies 依赖
 pnpm typecheck          # tsc --noEmit -p tsconfig.json
-pnpm test               # vitest run (12 files, 45 cases)
+pnpm test               # vitest run (15 files, 56 cases)
 pnpm build              # tsc -p tsconfig.main.json && vite build → out/
 pnpm package            # build && electron-builder --win portable → release/
 ```

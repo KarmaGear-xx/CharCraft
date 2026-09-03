@@ -11,6 +11,8 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
   const setError = useCardStore((s) => s.setError);
   const tokenBudget = useCardStore((s) => s.tokenBudget);
   const setTokenBudget = useCardStore((s) => s.setTokenBudget);
+  const promptTemplates = useCardStore((s) => s.promptTemplates);
+  const setPromptTemplates = useCardStore((s) => s.setPromptTemplates);
 
   const [baseUrl, setBaseUrl] = useState(aiSettings.baseUrl);
   const [apiKey, setApiKey] = useState(aiSettings.apiKey);
@@ -19,6 +21,12 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
   const [maxTokensWhole, setMaxTokensWhole] = useState(aiSettings.maxTokensWhole ?? 4096);
   const [maxTokensField, setMaxTokensField] = useState(aiSettings.maxTokensField ?? 2048);
   const [budget, setBudget] = useState(tokenBudget);
+  const [promptsOpen, setPromptsOpen] = useState(false);
+  const [ptSystem, setPtSystem] = useState(promptTemplates.system);
+  const [ptWholeCard, setPtWholeCard] = useState(promptTemplates.wholeCard);
+  const [ptField, setPtField] = useState(promptTemplates.fieldRewrite);
+  const [ptLorebook, setPtLorebook] = useState(promptTemplates.lorebook);
+  const [ptRecipe, setPtRecipe] = useState(promptTemplates.recipe);
   const [fetchModels, setFetchModels] = useState(false);
   const [models, setModels] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
@@ -67,12 +75,25 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
         maxTokensField: Number(maxTokensField) || 2048,
       });
       setTokenBudget(Number(budget) || 4096);
+      setPromptTemplates({ system: ptSystem, wholeCard: ptWholeCard, fieldRewrite: ptField, lorebook: ptLorebook, recipe: ptRecipe });
       setSuccess(t('settings.saved'));
       onClose();
     } catch (e) {
       setError(t('settings.saveFailed') + ': ' + (e as Error).message);
     }
   };
+
+  const renderPrompt = (label: string, value: string, setter: (v: string) => void) => (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <label>{label}</label>
+        <button className="btn" onClick={() => setter('')}>
+          {t('settings.promptReset')}
+        </button>
+      </div>
+      <textarea rows={4} value={value} onChange={(e) => setter(e.target.value)} />
+    </div>
+  );
 
   return (
     <Modal title={t('settings.title')} onClose={onClose}>
@@ -157,6 +178,22 @@ export default function ModelSettingsModal({ onClose }: { onClose: () => void })
         <p className="hint">{t('settings.tokenTierHint')}</p>
 
         <p className="hint">{t('settings.keyHint')}</p>
+
+        <button className="advanced-toggle" style={{ marginTop: 10 }} onClick={() => setPromptsOpen((o) => !o)}>
+          {promptsOpen ? '▾ ' : '▸ '}
+          {t('settings.promptsToggle')}
+        </button>
+
+        {promptsOpen && (
+          <div style={{ marginTop: 6 }}>
+            <p className="hint">{t('settings.promptsHint')}</p>
+            {renderPrompt(t('settings.promptSystem'), ptSystem, setPtSystem)}
+            {renderPrompt(t('settings.promptWholeCard'), ptWholeCard, setPtWholeCard)}
+            {renderPrompt(t('settings.promptFieldRewrite'), ptField, setPtField)}
+            {renderPrompt(t('settings.promptLorebook'), ptLorebook, setPtLorebook)}
+            {renderPrompt(t('settings.promptRecipe'), ptRecipe, setPtRecipe)}
+          </div>
+        )}
 
         <div className="modal-actions" style={{ marginTop: 14 }}>
           <button className="btn secondary" onClick={onClose}>

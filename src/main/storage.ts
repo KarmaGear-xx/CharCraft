@@ -1,7 +1,8 @@
 import { app } from 'electron';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AppConfig, Draft } from '../shared/types';
+import { EMPTY_PROMPT_TEMPLATES } from '../shared/types';
+import type { AppConfig, Draft, MultiChar, MultiGroup } from '../shared/types';
 
 const DEFAULT_CONFIG: AppConfig = {
   lang: 'zh',
@@ -17,6 +18,7 @@ const DEFAULT_CONFIG: AppConfig = {
   snippets: [],
   customRecipes: [],
   tokenBudget: 4096,
+  promptTemplates: { ...EMPTY_PROMPT_TEMPLATES },
 };
 
 function configPath(): string {
@@ -38,6 +40,7 @@ export async function getConfig(): Promise<AppConfig> {
       snippets: Array.isArray(c.snippets) ? c.snippets : [],
       customRecipes: Array.isArray(c.customRecipes) ? c.customRecipes : [],
       tokenBudget: typeof c.tokenBudget === 'number' ? c.tokenBudget : 4096,
+      promptTemplates: { ...DEFAULT_CONFIG.promptTemplates, ...(c.promptTemplates ?? {}) },
     };
   } catch {
     return {
@@ -47,6 +50,7 @@ export async function getConfig(): Promise<AppConfig> {
       snippets: [],
       customRecipes: [],
       tokenBudget: 4096,
+      promptTemplates: { ...DEFAULT_CONFIG.promptTemplates },
     };
   }
 }
@@ -59,7 +63,17 @@ export async function setConfig(config: AppConfig): Promise<void> {
 // The draft stores the avatar image (a Uint8Array) as base64 so it survives
 // JSON round-tripping.
 function serializeDraft(draft: Draft): string {
-  const d = { card: draft.card, enabled: draft.enabled, subFields: draft.subFields, snapshots: draft.snapshots, sourceName: draft.sourceName, updatedAt: draft.updatedAt, image: null as unknown };
+  const d = {
+    card: draft.card,
+    enabled: draft.enabled,
+    subFields: draft.subFields,
+    snapshots: draft.snapshots,
+    sourceName: draft.sourceName,
+    updatedAt: draft.updatedAt,
+    image: null as unknown,
+    characters: draft.characters ?? [],
+    group: draft.group ?? null,
+  };
   if (draft.image) {
     d.image = {
       width: draft.image.width,
@@ -79,12 +93,24 @@ function deserializeDraft(raw: string): Draft {
     sourceName: string;
     updatedAt: number;
     image: { width: number; height: number; rgbaB64?: string } | null;
+    characters?: MultiChar[];
+    group?: MultiGroup | null;
   };
   let image: Draft['image'] = null;
   if (d.image && typeof d.image.rgbaB64 === 'string') {
     image = { width: d.image.width, height: d.image.height, rgba: new Uint8Array(Buffer.from(d.image.rgbaB64, 'base64')) };
   }
-  return { card: d.card, enabled: d.enabled, subFields: d.subFields ?? {}, snapshots: d.snapshots ?? [], sourceName: d.sourceName, updatedAt: d.updatedAt, image };
+  return {
+    card: d.card,
+    enabled: d.enabled,
+    subFields: d.subFields ?? {},
+    snapshots: d.snapshots ?? [],
+    sourceName: d.sourceName,
+    updatedAt: d.updatedAt,
+    image,
+    characters: Array.isArray(d.characters) ? d.characters : [],
+    group: d.group ?? undefined,
+  };
 }
 
 export async function getDraft(): Promise<Draft | null> {

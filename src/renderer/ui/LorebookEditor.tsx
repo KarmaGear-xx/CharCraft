@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useCardStore } from '../store/store';
 import { useT } from '../i18n';
 import { useRunGuarded } from './genContext';
@@ -15,6 +15,9 @@ export default function LorebookEditor() {
   const generateLorebookEntry = useCardStore((s) => s.generateLorebookEntry);
   const importLorebook = useCardStore((s) => s.importLorebook);
   const exportLorebook = useCardStore((s) => s.exportLorebook);
+  const setEntriesEnabled = useCardStore((s) => s.setEntriesEnabled);
+  const removeEntries = useCardStore((s) => s.removeEntries);
+  const moveEntry = useCardStore((s) => s.moveEntry);
   const setError = useCardStore((s) => s.setError);
 
   const [topic, setTopic] = useState('');
@@ -22,10 +25,29 @@ export default function LorebookEditor() {
   const [bookAdvanced, setBookAdvanced] = useState(false);
   const [entryAdvanced, setEntryAdvanced] = useState<Record<number, boolean>>({});
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   if (!card) return null;
   const book = card.data?.character_book ?? {};
   const entries = book.entries ?? [];
+
+  const filter = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      entries
+        .map((e, i) => ({ e, i }))
+        .filter(({ e }) => {
+          if (!filter) return true;
+          return (
+            (e.keys ?? []).some((k) => String(k).toLowerCase().includes(filter)) ||
+            (e.secondary_keys ?? []).some((k) => String(k).toLowerCase().includes(filter)) ||
+            String(e.content ?? '').toLowerCase().includes(filter) ||
+            String(e.comment ?? '').toLowerCase().includes(filter)
+          );
+        }),
+    [entries, filter],
+  );
 
   const handleGenerate = () => {
     void runGuarded(async () => {
@@ -49,6 +71,33 @@ export default function LorebookEditor() {
     } catch (e) {
       setError((e as Error).message);
     }
+  };
+
+  const toggleSelect = (i: number) => {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(i)) n.delete(i);
+      else n.add(i);
+      return n;
+    });
+  };
+
+  const selectAll = () => {
+    if (filtered.length > 0 && selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map(({ i }) => i)));
+    }
+  };
+
+  const selArr = [...selected];
+
+  const bulk = (kind: 'enable' | 'disable' | 'delete') => {
+    if (selArr.length === 0) return;
+    if (kind === 'enable') setEntriesEnabled(selArr, true);
+    else if (kind === 'disable') setEntriesEnabled(selArr, false);
+    else removeEntries(selArr);
+    setSelected(new Set());
   };
 
   return (
@@ -77,6 +126,34 @@ export default function LorebookEditor() {
           {generating ? t('lorebook.generating') : t('lorebook.generate')}
         </button>
       </div>
+
+      <div className="entry-row" style={{ marginTop: 6 }}>
+        <label>{t('lorebook.search')}</label>
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
+      {filtered.length > 0 && (
+        <div className="checkbox-line" style={{ marginTop: 6 }}>
+          <label>
+            <input type="checkbox" checked={selected.size === filtered.length} onChange={selectAll} />
+            {t('lorebook.selectAll')}
+          </label>
+          {selArr.length > 0 && (
+            <>
+              <span className="hint">{t('lorebook.selected').replace('{n}', String(selArr.length))}</span>
+              <button className="btn" onClick={() => bulk('enable')}>
+                {t('lorebook.batchEnable')}
+              </button>
+              <button className="btn" onClick={() => bulk('disable')}>
+                {t('lorebook.batchDisable')}
+              </button>
+              <button className="btn danger" onClick={() => bulk('delete')}>
+                {t('lorebook.batchDelete')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <button className="advanced-toggle" onClick={() => setBookAdvanced((o) => !o)}>
         {bookAdvanced ? '▾ ' : '▸ '}
@@ -114,15 +191,22 @@ export default function LorebookEditor() {
         </div>
       )}
 
-      {entries.length === 0 && <p className="hint">{t('lorebook.empty')}</p>}
+      {filtered.length === 0 && <p className="hint">{t('lorebook.empty')}</p>}
 
-      {entries.map((entry, i) => {
+      {filtered.map(({ e: entry, i }) => {
         const keys = (entry.keys ?? []).join(', ');
         const secondary = (entry.secondary_keys ?? []).join(', ');
         return (
           <div className="entry" key={i}>
             <div className="entry-head">
+              <input type="checkbox" checked={selected.has(i)} onChange={() => toggleSelect(i)} />
               <span className="idx">#{i + 1}</span>
+              <button className="btn" title={t('lorebook.moveUp')} onClick={() => moveEntry(i, -1)}>
+                ↑
+              </button>
+              <button className="btn" title={t('lorebook.moveDown')} onClick={() => moveEntry(i, 1)}>
+                ↓
+              </button>
               <button className="btn danger" onClick={() => removeLorebookEntry(i)}>
                 {t('lorebook.delete')}
               </button>

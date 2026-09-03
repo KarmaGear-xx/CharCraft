@@ -12,18 +12,27 @@ import type {
   AppConfig,
   Theme,
   Snapshot,
+  PromptTemplates,
+  MultiChar,
+  MultiGroup,
+  ValidationIssue,
 } from '../../shared/types';
+import { EMPTY_PROMPT_TEMPLATES } from '../../shared/types';
 import { CARD_V2, importCardBytes, buildJsonText, buildPngBytes, mergeDescription } from '../core/card';
 import { ALL_FIELDS, ADVANCED_FIELDS, ARRAY_FIELDS } from '../core/fields';
 import { cropSquare, resizeImage, decodeImageBytes } from '../core/image';
 import { buildWorldJson, parseWorldJson, mergeBook } from '../core/lorebook';
 import { findReplaceCard } from '../core/findReplace';
 import { genderSwapCard } from '../core/gender';
+import { validateCard } from '../core/validate';
+import { composeMultiCard } from '../core/multiChar';
 import {
   wholeCardMessages,
   fieldRewriteMessages,
   lorebookEntryMessages,
   recipeMessages,
+  multiCharMessages,
+  multiGroupMessages,
   extractJson,
   coerceGeneratedField,
   WHOLE_CARD_FIELDS,
@@ -47,6 +56,8 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
 };
 
 export const DEFAULT_TOKEN_BUDGET = 4096;
+
+const DEFAULT_GROUP: MultiGroup = { name: '', scenario: '', firstMes: '' };
 
 function defaultEnabled(): Record<string, boolean> {
   const e: Record<string, boolean> = {};
@@ -86,6 +97,10 @@ interface CardState {
   tokenBudget: number;
   theme: Theme;
   snapshots: Snapshot[];
+  promptTemplates: PromptTemplates;
+  characters: MultiChar[];
+  group: MultiGroup;
+  pendingExport: { kind: 'json' | 'png'; issues: ValidationIssue[] } | null;
 
   setLang: (l: Lang) => void;
   setAISettings: (s: AISettings) => Promise<void>;
@@ -106,6 +121,16 @@ interface CardState {
   restoreSnapshot: (index: number) => void;
   deleteSnapshot: (index: number) => void;
   setExtension: (key: string, value: unknown) => void;
+  setPromptTemplates: (t: PromptTemplates) => void;
+
+  setGroup: (patch: Partial<MultiGroup>) => void;
+  addCharacter: () => void;
+  updateCharacter: (id: string, patch: Partial<MultiChar>) => void;
+  removeCharacter: (id: string) => void;
+  moveCharacter: (id: string, dir: -1 | 1) => void;
+  generateCharacterFromBrief: (brief: string) => Promise<void>;
+  rewriteCharacter: (id: string) => Promise<void>;
+  generateGroupFromBrief: (brief: string) => Promise<void>;
 
   hydrate: () => Promise<void>;
   newCard: () => void;
@@ -125,9 +150,15 @@ interface CardState {
   updateLorebookEntry: (index: number, patch: Partial<WorldEntry>) => void;
   removeLorebookEntry: (index: number) => void;
   updateBookMeta: (patch: Partial<CharacterBook>) => void;
+  setEntriesEnabled: (indices: number[], enabled: boolean) => void;
+  removeEntries: (indices: number[]) => void;
+  moveEntry: (index: number, dir: -1 | 1) => void;
 
   exportJson: () => Promise<void>;
   exportPng: () => Promise<void>;
+  requestExport: (kind: 'json' | 'png') => Promise<void>;
+  confirmExport: () => Promise<void>;
+  cancelExport: () => void;
 
   cropAvatar: () => void;
   resizeAvatar: (maxDim: number) => void;
@@ -154,6 +185,10 @@ export const useCardStore = create<CardState>()((set, get) => ({
   tokenBudget: DEFAULT_TOKEN_BUDGET,
   theme: 'light',
   snapshots: [],
+  promptTemplates: { ...EMPTY_PROMPT_TEMPLATES },
+  characters: [],
+  group: { ...DEFAULT_GROUP },
+  pendingExport: null,
 
   setLang: (l) => {
     set({ lang: l });
@@ -222,6 +257,89 @@ export const useCardStore = create<CardState>()((set, get) => ({
     data.extensions = ext;
     set({ card: { ...card, data } });
   },
+  setPromptTemplates: (t) => {
+    set({ promptTemplates: t });
+    persistConfig();
+  },
+
+  setGroup: (patch) => set({ group: { ...get().group, ...patch } }),
+  addCharacter: () => {
+    set({ characters: [...get().characters, { id: genId(), name: '', description: '', personality: '', intro: '' }] });
+  },
+  updateCharacter: (id, patch) => {
+    set({ characters: get().characters.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
+  },
+  removeCharacter: (id) => {
+    set({ characters: get().characters.filter((c) => c.id !== id) });
+  },
+  moveCharacter: (id, dir) => {
+    const chars = [...get().characters];
+    const i = chars.findIndex((c) => c.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= chars.length) return;
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+    set({ characters: chars });
+  },
+  generateCharacterFromBrief: async (brief) => {
+    const state = get();
+    const content = await window.api.aiChat(state.aiSettings, multiCharMessages(brief, undefined, state.promptTemplates), {
+      json: true,
+      maxTokens: state.aiSettings.maxTokensField,
+    });
+    const obj = extractJson(content) as Record<string, unknown>;
+    const ch: MultiChar = {
+      id: genId(),
+      name: String(obj.name ?? '').trim(),
+      description: String(obj.description ?? '').trim(),
+      personality: String(obj.personality ?? '').trim(),
+      intro: String(obj.intro ?? '').trim(),
+    };
+    set({ characters: [...get().characters, ch] });
+  },
+  rewriteCharacter: async (id) => {
+    const state = get();
+    const ch = state.characters.find((c) => c.id === id);
+    if (!ch) throw new Error('角色不存在。');
+    const content = await window.api.aiChat(
+      state.aiSettings,
+      multiCharMessages('', { name: ch.name, description: ch.description, personality: ch.personality, intro: ch.intro }, state.promptTemplates),
+      { json: true, maxTokens: state.aiSettings.maxTokensField },
+    );
+    const obj = extractJson(content) as Record<string, unknown>;
+    get().updateCharacter(id, {
+      name: String(obj.name ?? ch.name).trim(),
+      description: String(obj.description ?? ch.description).trim(),
+      personality: String(obj.personality ?? ch.personality).trim(),
+      intro: String(obj.intro ?? ch.intro).trim(),
+    });
+  },
+  generateGroupFromBrief: async (brief) => {
+    const state = get();
+    const content = await window.api.aiChat(state.aiSettings, multiGroupMessages(brief, state.promptTemplates), {
+      json: true,
+      maxTokens: state.aiSettings.maxTokensWhole,
+    });
+    const obj = extractJson(content) as Record<string, unknown>;
+    const arr = Array.isArray(obj.characters) ? obj.characters : [];
+    const characters: MultiChar[] = arr.map((c) => {
+      const o = (c ?? {}) as Record<string, unknown>;
+      return {
+        id: genId(),
+        name: String(o.name ?? '').trim(),
+        description: String(o.description ?? '').trim(),
+        personality: String(o.personality ?? '').trim(),
+        intro: String(o.intro ?? '').trim(),
+      };
+    });
+    set({
+      group: {
+        name: String(obj.name ?? '').trim(),
+        scenario: String(obj.scenario ?? '').trim(),
+        firstMes: String(obj.first_mes ?? '').trim(),
+      },
+      characters,
+    });
+  },
 
   hydrate: async () => {
     const config = await window.api.getConfig().catch(() => null);
@@ -239,6 +357,9 @@ export const useCardStore = create<CardState>()((set, get) => ({
       tokenBudget: config?.tokenBudget ?? DEFAULT_TOKEN_BUDGET,
       theme: config?.theme ?? 'light',
       snapshots: draft?.snapshots ?? [],
+      promptTemplates: config?.promptTemplates ?? { ...EMPTY_PROMPT_TEMPLATES },
+      characters: draft?.characters ?? [],
+      group: draft?.group ?? { ...DEFAULT_GROUP },
       hydrated: true,
     });
   },
@@ -247,7 +368,17 @@ export const useCardStore = create<CardState>()((set, get) => ({
     const data: CardData = {};
     for (const f of ALL_FIELDS) data[f.key] = ARRAY_FIELDS.has(f.key) ? [] : '';
     const card: CharacterCard = { spec: CARD_V2, spec_version: '2.0', data };
-    set({ card, image: null, subFields: {}, snapshots: [], sourceName: 'untitled', enabled: defaultEnabled(), brief: '' });
+    set({
+      card,
+      image: null,
+      subFields: {},
+      snapshots: [],
+      sourceName: 'untitled',
+      enabled: defaultEnabled(),
+      brief: '',
+      characters: [],
+      group: { ...DEFAULT_GROUP },
+    });
   },
 
   importCard: async () => {
@@ -262,6 +393,8 @@ export const useCardStore = create<CardState>()((set, get) => ({
       subFields: {},
       snapshots: [],
       brief: '',
+      characters: [],
+      group: { ...DEFAULT_GROUP },
     });
   },
 
@@ -276,7 +409,7 @@ export const useCardStore = create<CardState>()((set, get) => ({
   generateWholeCard: async (brief, mode, targets) => {
     const state = get();
     if (!state.card) throw new Error('没有卡片可编辑。');
-    const content = await window.api.aiChat(state.aiSettings, wholeCardMessages(brief), {
+    const content = await window.api.aiChat(state.aiSettings, wholeCardMessages(brief, state.promptTemplates), {
       json: true,
       maxTokens: state.aiSettings.maxTokensWhole,
     });
@@ -311,7 +444,7 @@ export const useCardStore = create<CardState>()((set, get) => ({
     const isArray = ARRAY_FIELDS.has(key);
     const content = await window.api.aiChat(
       state.aiSettings,
-      fieldRewriteMessages(key, current, { name: state.card.data?.name, brief: state.brief }),
+      fieldRewriteMessages(key, current, { name: state.card.data?.name, brief: state.brief }, state.promptTemplates),
       { json: isArray, maxTokens: state.aiSettings.maxTokensField },
     );
     const value = isArray ? coerceGeneratedField(key, extractJson(content)) : content.trim();
@@ -323,7 +456,7 @@ export const useCardStore = create<CardState>()((set, get) => ({
     if (!state.card) throw new Error('没有卡片可编辑。');
     const name = state.card.data?.name ?? '';
     const desc = state.card.data?.description ?? '';
-    const content = await window.api.aiChat(state.aiSettings, lorebookEntryMessages(name, desc, topic), {
+    const content = await window.api.aiChat(state.aiSettings, lorebookEntryMessages(name, desc, topic, state.promptTemplates), {
       json: true,
       maxTokens: state.aiSettings.maxTokensField,
     });
@@ -344,7 +477,7 @@ export const useCardStore = create<CardState>()((set, get) => ({
     const current = typeof state.card.data?.[recipe.field] === 'string' ? (state.card.data[recipe.field] as string) : '';
     const content = await window.api.aiChat(
       state.aiSettings,
-      recipeMessages(recipe, current, state.card.data?.name ?? ''),
+      recipeMessages(recipe, current, state.card.data?.name ?? '', state.promptTemplates),
       { json: false, maxTokens: state.aiSettings.maxTokensField },
     );
     const generated = content.trim();
@@ -421,24 +554,67 @@ export const useCardStore = create<CardState>()((set, get) => ({
     set({ card: { ...card, data } });
   },
 
-  exportJson: async () => {
-    const state = get();
-    if (!state.card) throw new Error('没有卡片可导出。');
-    const text = buildJsonText(withMergedDescription(state.card, state.subFields), state.enabled);
-    await window.api.saveFile(
-      (state.sourceName || 'card') + '.json',
-      [{ name: 'JSON', extensions: ['json'] }],
-      new TextEncoder().encode(text),
-    );
+  setEntriesEnabled: (indices, enabled) => {
+    const card = get().card;
+    if (!card) return;
+    const data = { ...(card.data ?? {}) };
+    const book = { ...(data.character_book ?? { entries: [] }) };
+    const entries = [...(book.entries ?? [])];
+    for (const i of indices) if (entries[i]) entries[i] = { ...entries[i], enabled };
+    book.entries = entries;
+    data.character_book = book;
+    set({ card: { ...card, data } });
   },
 
-  exportPng: async () => {
+  removeEntries: (indices) => {
+    const card = get().card;
+    if (!card) return;
+    const data = { ...(card.data ?? {}) };
+    const book = { ...(data.character_book ?? { entries: [] }) };
+    const entries = [...(book.entries ?? [])];
+    const s = new Set(indices);
+    book.entries = reorderEntries(entries.filter((_, i) => !s.has(i)));
+    data.character_book = book;
+    set({ card: { ...card, data } });
+  },
+
+  moveEntry: (index, dir) => {
+    const card = get().card;
+    if (!card) return;
+    const data = { ...(card.data ?? {}) };
+    const book = { ...(data.character_book ?? { entries: [] }) };
+    const entries = [...(book.entries ?? [])];
+    const j = index + dir;
+    if (index < 0 || j < 0 || j >= entries.length) return;
+    [entries[index], entries[j]] = [entries[j], entries[index]];
+    book.entries = reorderEntries(entries);
+    data.character_book = book;
+    set({ card: { ...card, data } });
+  },
+
+  exportJson: () => get().requestExport('json'),
+  exportPng: () => get().requestExport('png'),
+
+  requestExport: async (kind) => {
     const state = get();
     if (!state.card) throw new Error('没有卡片可导出。');
-    const card = withMergedDescription(state.card, state.subFields);
-    const bytes = await buildPngBytes(card, state.enabled, state.image);
-    await window.api.saveFile((state.sourceName || 'card') + '.png', [{ name: 'PNG Image', extensions: ['png'] }], bytes);
+    const composed = state.characters.length > 0 ? composeMultiCard(state.card, state.characters, state.group) : state.card;
+    const issues = validateCard(composed, state.enabled, state.tokenBudget, state.image);
+    if (issues.length === 0) {
+      await doExport(kind);
+    } else {
+      set({ pendingExport: { kind, issues } });
+    }
   },
+
+  confirmExport: async () => {
+    const p = get().pendingExport;
+    if (!p) return;
+    set({ pendingExport: null });
+    await doExport(p.kind);
+  },
+
+  cancelExport: () => set({ pendingExport: null }),
 
   cropAvatar: () => {
     const img = get().image;
@@ -487,17 +663,40 @@ function currentConfig(s: CardState): AppConfig {
     snippets: s.snippets,
     customRecipes: s.customRecipes,
     tokenBudget: s.tokenBudget,
+    promptTemplates: s.promptTemplates,
   };
 }
 
-function persistConfig(): void {
-  window.api.setConfig(currentConfig(useCardStore.getState())).catch(() => {});
+function reorderEntries(entries: WorldEntry[]): WorldEntry[] {
+  return entries.map((e, i) => ({ ...e, insertion_order: i }));
 }
 
 function withMergedDescription(card: CharacterCard, subFields: Record<string, string>): CharacterCard {
   const data = { ...(card.data ?? {}) };
   data.description = mergeDescription(String(data.description ?? ''), subFields);
   return { ...card, data };
+}
+
+async function doExport(kind: 'json' | 'png'): Promise<void> {
+  const state = useCardStore.getState();
+  if (!state.card) throw new Error('没有卡片可导出。');
+  const composed = state.characters.length > 0 ? composeMultiCard(state.card, state.characters, state.group) : state.card;
+  const merged = withMergedDescription(composed, state.subFields);
+  if (kind === 'json') {
+    const text = buildJsonText(merged, state.enabled);
+    await window.api.saveFile(
+      (state.sourceName || 'card') + '.json',
+      [{ name: 'JSON', extensions: ['json'] }],
+      new TextEncoder().encode(text),
+    );
+  } else {
+    const bytes = await buildPngBytes(merged, state.enabled, state.image);
+    await window.api.saveFile((state.sourceName || 'card') + '.png', [{ name: 'PNG Image', extensions: ['png'] }], bytes);
+  }
+}
+
+function persistConfig(): void {
+  window.api.setConfig(currentConfig(useCardStore.getState())).catch(() => {});
 }
 
 // Debounced draft autosave via the main process (userData/draft.json).
@@ -511,6 +710,8 @@ function scheduleSave(s: CardState): void {
     s: s.subFields,
     p: s.snapshots.length,
     i: s.image ? s.image.width + ':' + s.image.height : null,
+    m: s.characters.length,
+    g: s.group,
   });
   if (snapshot === lastSnapshot) return;
   lastSnapshot = snapshot;
@@ -527,6 +728,8 @@ function scheduleSave(s: CardState): void {
         snapshots: st.snapshots,
         sourceName: st.sourceName,
         updatedAt: Date.now(),
+        characters: st.characters,
+        group: st.group,
       })
       .catch(() => {});
   }, 700);

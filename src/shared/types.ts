@@ -69,6 +69,23 @@ export interface AISettings {
   maxTokensField: number; // single-field / lorebook / recipe generation
 }
 
+// User-overridable generation prompts. Empty string = use the built-in default.
+export interface PromptTemplates {
+  system: string;
+  wholeCard: string;
+  fieldRewrite: string;
+  lorebook: string;
+  recipe: string;
+}
+
+export const EMPTY_PROMPT_TEMPLATES: PromptTemplates = {
+  system: '',
+  wholeCard: '',
+  fieldRewrite: '',
+  lorebook: '',
+  recipe: '',
+};
+
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -106,12 +123,27 @@ export interface AppConfig {
   snippets: Snippet[];
   customRecipes: Recipe[];
   tokenBudget: number;
+  promptTemplates: PromptTemplates;
 }
 
 export interface DecodedImage {
   width: number;
   height: number;
   rgba: Uint8Array;
+}
+
+export interface MultiChar {
+  id: string;
+  name: string;
+  description: string;
+  personality: string;
+  intro: string;
+}
+
+export interface MultiGroup {
+  name: string;
+  scenario: string;
+  firstMes: string;
 }
 
 export interface Draft {
@@ -122,6 +154,16 @@ export interface Draft {
   snapshots: Snapshot[];
   sourceName: string;
   updatedAt: number;
+  characters?: MultiChar[];
+  group?: MultiGroup;
+}
+
+export type ValidationLevel = 'error' | 'warning' | 'info';
+
+export interface ValidationIssue {
+  level: ValidationLevel;
+  key: string; // i18n key
+  args?: Record<string, string | number>;
 }
 
 export interface OpenCardResult {

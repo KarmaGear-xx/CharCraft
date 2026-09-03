@@ -28,7 +28,10 @@ A Ginger-like **SillyTavern character card editor**, shipped as a portable Windo
 - **Import / 导入**: `.png` (embedded `chara`/`ccv3`), `.json`, `.charx`; supports `chara_card_v2` / `chara_card_v3`.
 - **Visual form editor / 可视化表单**: core fields + an "Advanced Options" collapse; each field has an enable/disable checkbox and an ✨ AI rewrite button.
 - **AI-assisted generation / AI 辅助生成**: whole-card drafting, per-field rewrite, world-book entries; runs in the main process (no CORS); overwrite protection + cost reminder.
-- **World book / 世界书**: manual or AI-generated entries, bound to the card and exported with it.
+- **World book / 世界书**: manual or AI-generated entries, bound to the card and exported with it; batch enable/disable/delete + search + reorder.
+- **Editable prompts / 可编辑提示词**: default-hidden prompt templates in AI Settings for system / whole-card / field / lorebook / recipe.
+- **Pre-export check / 导出前检查**: non-blocking health check before `.json`/`.png` export (missing fields, token budget, avatar size, unknown extensions).
+- **Multi-character cards / 多角色卡**: compose several characters into one standard card (manual or AI-generated), merged into `description`/`personality` on export.
 - **Export / 导出**: `.json` and `.png` (writes back the `tEXt` `chara`/`ccv3` chunk, recognized by SillyTavern).
 - **Bilingual UI / 中英双语**: switchable; card data field names and content are always English.
 
