@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { encodePng, decodePng, readTextChunks, crc32 } from '../src/renderer/core/png';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+// demo/ is a volatile data source, so pick the first available card.
+const DEMO_PNGS = readdirSync(resolve('demo')).filter((f) => f.toLowerCase().endsWith('.png'));
 
 describe('png codec', () => {
   it('round-trips an RGBA image exactly', async () => {
@@ -22,8 +25,8 @@ describe('png codec', () => {
     expect(readTextChunks(bytes).find((t) => t.keyword === 'chara')?.text).toBe('aGVsbG8=');
   });
 
-  it('decodes a demo card PNG', async () => {
-    const buf = readFileSync(resolve('demo', 'Rikka.png'));
+  it.skipIf(DEMO_PNGS.length === 0, 'no demo cards present')('decodes a demo card PNG', async () => {
+    const buf = readFileSync(resolve('demo', DEMO_PNGS[0]));
     const decoded = await decodePng(buf);
     expect(decoded.width).toBeGreaterThan(0);
     expect(decoded.height).toBeGreaterThan(0);

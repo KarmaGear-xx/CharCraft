@@ -104,7 +104,7 @@ src/
   shared/
     types.ts     # data models + WindowApi
     ipc.ts       # IPC channel names
-tests/            # vitest (15 files, 56 cases)
+tests/            # vitest (16 files, 58 cases)
 ```
 
 ## 6. Data models & file formats / 数据模型与文件格式
@@ -168,7 +168,7 @@ Others: avatar、character_book、extensions、group_only_greetings
 ```bash
 pnpm install            # dependencies 依赖
 pnpm typecheck          # tsc --noEmit -p tsconfig.json
-pnpm test               # vitest run (15 files, 56 cases)
+pnpm test               # vitest run (16 files, 58 cases)
 pnpm build              # tsc -p tsconfig.main.json && vite build → out/
 pnpm package            # build && electron-builder --win portable → release/
 ```
