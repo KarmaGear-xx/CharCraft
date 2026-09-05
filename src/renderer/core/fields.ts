@@ -18,13 +18,13 @@ export const CORE_FIELDS: FieldMeta[] = [
   { key: 'first_mes', kind: 'textarea', labelKey: 'field.first_mes', advanced: false },
   { key: 'mes_example', kind: 'textarea', labelKey: 'field.mes_example', advanced: false },
   { key: 'alternate_greetings', kind: 'array', labelKey: 'field.alternate_greetings', advanced: false },
-  { key: 'system_prompt', kind: 'textarea', labelKey: 'field.system_prompt', advanced: false },
   { key: 'creator_notes', kind: 'textarea', labelKey: 'field.creator_notes', advanced: false },
   { key: 'tags', kind: 'tags', labelKey: 'field.tags', advanced: false },
   { key: 'creator', kind: 'text', labelKey: 'field.creator', advanced: false },
 ];
 
 export const ADVANCED_FIELDS: FieldMeta[] = [
+  { key: 'system_prompt', kind: 'textarea', labelKey: 'field.system_prompt', advanced: true },
   { key: 'post_history_instructions', kind: 'textarea', labelKey: 'field.post_history_instructions', advanced: true },
   { key: 'character_version', kind: 'text', labelKey: 'field.character_version', advanced: true },
   { key: 'group_only_greetings', kind: 'array', labelKey: 'field.group_only_greetings', advanced: true },

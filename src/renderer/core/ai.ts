@@ -10,7 +10,6 @@ export const WHOLE_CARD_FIELDS = [
   'scenario',
   'first_mes',
   'mes_example',
-  'system_prompt',
   'tags',
 ] as const;
 
@@ -48,7 +47,6 @@ export function wholeCardMessages(brief: string, templates?: PromptTemplates): A
       '- "scenario": string (situation / world context, 2-3 paragraphs)\n' +
       '- "first_mes": string (opening message in character; use *actions* and quoted dialogue, address the user as {{user}})\n' +
       '- "mes_example": string (2-3 turns of example dialogue between {{char}} and {{user}})\n' +
-      '- "system_prompt": string (optional instructions for the AI, may be empty)\n' +
       '- "tags": array of strings (5-10 relevant tags)\n' +
       'Write everything in English.';
   return [
